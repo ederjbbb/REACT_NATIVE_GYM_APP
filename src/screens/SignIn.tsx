@@ -1,23 +1,51 @@
-import {Center, Heading, Image, ScrollView, Text, VStack} from 'native-base'
+import {Center, Heading, Image, ScrollView, Text, VStack, useToast} from 'native-base'
+import { Controller, useForm } from 'react-hook-form';
 
+import { AppError } from '../utils/AppError';
 import { AuthNavigatorRoutesProps } from '../routes/auth.routes';
 import BackgroundImg from '../../assets/background.png';
 import { Button } from '../components/Button';
 import {Input} from '../components/Input'
 import LogoSvg from '../../assets/logo.svg'
 import React from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigation } from "@react-navigation/native"
 
+type FormData = {
+    email: string;
+    password: string;
+}
 export function SignIn(){
+
+    const {signIn} = useAuth()
 
     const navigation = useNavigation<AuthNavigatorRoutesProps>()
 
-    function handleCreateAccount(){
+    const toast = useToast()
+
+    const {control, handleSubmit, formState: {errors}} = useForm<FormData>()
+    
+    function handleNewAccount(){
+        navigation.navigate('signUp')
+    }
+
+    async function handleSignIn({email, password}: FormData){
+
         try {
-            navigation.navigate("signUp")
+            await signIn(email,password)
         } catch (error) {
-            
+            const isAppError = error instanceof AppError ;
+
+           const title = isAppError ? error.message : 'Nao foi possivel entrar, entre novamente';
+
+           toast.show({
+               title,
+               placement: 'top',
+               bgColor: 'red.500'
+           })
         }
+        
+      
     }
     return (
         <ScrollView contentContainerStyle={{flexGrow: 1}} showsVerticalScrollIndicator={false}>
@@ -37,16 +65,36 @@ export function SignIn(){
             <Heading color="gray.100" fontSize="xl" mb={6} fontFamily="heading">
                 Acesse sua conta
             </Heading>
-            <Input 
-            placeholder='E-mail'
-            keyboardType='email-address'
-            autoCapitalize='none'
+            <Controller
+                
+                control={control}
+                name='email'
+                rules={{ required: 'Informe o e-mail'}}
+                render={({field: {onChange}}) => (
+                    <Input 
+                     placeholder='E-mail'
+                     keyboardType='email-address'
+                     onChangeText={onChange}
+                     errorMessage={errors.email?.message}
+                     autoCapitalize='none'
+                    />
+                )}
             />
-            <Input 
-            placeholder='Senha'
-            secureTextEntry
+            <Controller
+                control={control}
+                name='password'
+                rules={{required: 'Informe a senha'}}
+                render={({field: {onChange}}) => (
+                    <Input 
+                    placeholder='Senha'
+                    onChangeText={onChange}
+                     errorMessage={errors.password?.message}
+                     secureTextEntry
+                    />
+                )}
             />
-            <Button title={"Entrar"}/>
+            
+            <Button title={"Entrar"} onPress={handleSubmit(handleSignIn)}/>
             
             </Center>
             <Center mt={24}>
@@ -54,7 +102,7 @@ export function SignIn(){
             <Button 
             title={"Criar conta"} 
             variant={"outline"}
-            onPress={handleCreateAccount}
+            onPress={handleNewAccount}
             />
             </Center>
            
