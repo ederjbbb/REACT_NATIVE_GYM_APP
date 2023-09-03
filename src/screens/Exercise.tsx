@@ -1,4 +1,4 @@
-import { Box, HStack, Heading, Icon, Image, ScrollView, Text, VStack, useToast }  from 'native-base'
+import { Box, Center, HStack, Heading, Icon, Image, ScrollView, Text, VStack, useToast }  from 'native-base'
 import React, { useEffect, useState } from 'react'
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -8,6 +8,7 @@ import BodySVG from '../../assets/body.svg'
 import { Button } from '../components/Button'
 import { ExerciseDTO } from '../dtos/ExerciseDTO';
 import {Feather} from "@expo/vector-icons"
+import { Loading } from '../components/Loading';
 import RepetitionsSVG from "../../assets/repetitions.svg"
 import SeriesSVG from "../../assets/series.svg"
 import { TouchableOpacity } from 'react-native'
@@ -17,6 +18,8 @@ type RouteParamsProps = {
     exerciseId: string;
 }
 export function Exercise(){
+    const [isLoading, setIsLoading] = useState(true)
+    const [isSendingRegister, setIsSendingRegister] = useState(false)
     const [exercise, setExercise] = useState<ExerciseDTO>({} as ExerciseDTO)
     const navigation = useNavigation<AppNavigatorRoutesProps>()
     const route = useRoute()
@@ -26,10 +29,39 @@ export function Exercise(){
     function handleGoBack(){
         navigation.goBack();
     }
+
+    
+
+    async function handleExerciseHistoryRegister(){
+        setIsSendingRegister(true)
+        try {
+            
+            const response = await api.post('/history', {exercise_id: exerciseId})
+            toast.show({
+                title: 'Exercicio registrado como feito',
+                placement: 'top',
+                bgColor: 'green.500'
+            })
+            navigation.navigate('history')
+        } catch (error) {
+            const isAppError = error instanceof AppError;
+            const title =  isAppError ? error.message : 'Nao foi possivel marcar como feito';
+            toast.show({
+                title,
+                placement: 'top',
+                bgColor: 'red.500'
+            })
+        }finally{
+            setIsSendingRegister(false)
+
+        }
+    }
     useEffect(() => { fetchExerciseDetails()}, [exerciseId])
     async function fetchExerciseDetails(){
+        setIsLoading(true)
         try {
             const response = await api.get(`/exercises/${exerciseId}`)
+            
             setExercise(response.data)
         } catch (error) {
             const isAppError = error instanceof AppError;
@@ -40,6 +72,7 @@ export function Exercise(){
                 bgColor: 'red.500'
             })
         }finally{
+            setIsLoading(false)
         }
     }
     
@@ -50,17 +83,20 @@ export function Exercise(){
             <TouchableOpacity onPress={handleGoBack}>
                 <Icon as={Feather} name='arrow-left' color='green.500' size={6} />
             </TouchableOpacity>
+            
             <HStack justifyContent={'space-between'} mt={4} mb={8} alignItems='center'>
                 <Heading color='gray.100' fontSize='lg' flexShrink={1}>{exercise.name}</Heading>
                 <HStack alignItems={'center'}>
                     <BodySVG/>
                 <Text color='gray.200' ml={1} textTransform='capitalize'>{exercise.group}</Text>
             </HStack>
-            </HStack>
             
+            </HStack>
+
         </VStack>
+        { isLoading ? <Loading/> : 
         <ScrollView showsVerticalScrollIndicator={false}>
-        <VStack p={8}>
+                 <VStack p={8}>
             <Image
             w="full"
             h={80}
@@ -82,11 +118,18 @@ export function Exercise(){
                    <Text color='gray.200' ml={2}>{exercise.repetitions}</Text>
                 </HStack>
                 </HStack>
-                <Button title='Marcar como realizado'/>
+                <Button 
+                title='Marcar como realizado' 
+                onPress={handleExerciseHistoryRegister}
+                isLoading={isSendingRegister} 
+                />
             </Box>
             
-        </VStack>
+        </VStack> 
+            
+        
         </ScrollView>
+    }
         
     </VStack>
     )
