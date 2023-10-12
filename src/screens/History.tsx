@@ -50,7 +50,7 @@ export function History(){
             </Heading>
         )} 
 
-        renderItem={({item}) => (<HistoryCard/>)}  
+        renderItem={({item}) => (<HistoryCard data={item}/>)}  
         px={5}  
         contentContainerStyle={exercises.length === 0 && {flex: 1, justifyContent:"center" }}
         ListEmptyComponent={() => (
