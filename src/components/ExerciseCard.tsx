@@ -9,6 +9,8 @@ import { api } from "../services/api";
 type Props =  TouchableOpacityProps & {
     data: ExerciseDTO;
 }
+
+
 export function  ExerciseCard ({data,...rest}: Props) {
     return (
         <TouchableOpacity{...rest} >
