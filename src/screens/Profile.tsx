@@ -7,38 +7,50 @@ import { Controller, useForm } from 'react-hook-form'
 import { Keyboard, TouchableOpacity } from 'react-native'
 import React, { useState } from 'react'
 
+import { AppError } from '../utils/AppError'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { ScreenHeader } from '../components/ScreenHeader'
 import {UserPhoto} from '../components/Userphoto'
+import { api } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import {yupResolver} from '@hookform/resolvers/yup'
 
 type FormDataProps = {
     name: string;
     email: string;
-    new_password: string;
-    current_password: string;
-    confirm_new_password: string;
+    password: string;
+    old_password: string;
+    confirm_password: string;
 }
 
 const profileSchema = yup.object({
     name: yup.string().required('Imforme o nome'),
-    current_password: yup.string().min(6,'A deve ter pelo menos 6 difitos').nullable().transform((value) => !!value ? value: null),
-    new_password: yup.string().min(6,'Nova senha deve ter pelo menos 6 difitos').nullable().transform((value) => !!value ? value: null),
-    confirm_new_password: yup.string().nullable().transform((value) => !!value ? value: null)
-    .oneOf([yup.ref('current_password'),null], 'Confirme a senha '),
-
+    old_password: yup.string().min(6,'A deve ter pelo menos 6 difitos').nullable().transform((value) => !!value ? value: null),
+    password: yup.string().min(6,'Nova senha deve ter pelo menos 6 difitos').nullable().transform((value) => !!value ? value: null),
+    confirm_password: yup
+    .string()
+    .nullable()
+    .transform((value) => (!!value ? value: null))
+    .oneOf([yup.ref('password'),null], 'Confirme a senha, por favor ')
+    .when('password',{
+        is: (Field: any) => Field,
+        then: (schema) => schema
+        .nullable()
+        .required('Informe confirmacao de senha')
+        .transform((value) => !!value ? value : null)
+    })
 
 })
     
 export function Profile(){
     const [isPhotoLoading, setIsPhotoLoading] = useState(false)
+    const [isUpdateing, setIsUpdating] = useState(false)
     const [userPhoto, setUserPhoto] = useState('https://avatars.githubusercontent.com/u/49681084?v=4.png')
     const toast = useToast()
     const PHOTO_SIZE= 33;
     const {user} = useAuth()
-    const  {control, handleSubmit, formState:{errors, isLoading}} = useForm<FormDataProps>({
+    const  {control, handleSubmit, formState:{errors}} = useForm<FormDataProps>({
         defaultValues : {
             name: user.name,
             email: user.email
@@ -85,7 +97,29 @@ export function Profile(){
     }
 
     async function handleProfileUpdate(data: FormDataProps){
-        console.log(data)
+        try {
+            setIsUpdating(true)
+
+            await api.put('/users',data)
+            toast.show({
+                title: 'Perfil atualizado com sucesso',
+                placement: 'top',
+                bgColor: 'green.500'
+
+            })
+        } catch (error) {
+            
+            const isAppError = error instanceof AppError;
+            const title = isAppError ? error.message : 'Nao foi possovel atualizaro perfil, tente depois'
+
+            toast.show({
+                title,
+                placement: 'top',
+                bgColor: 'red.500'
+            });
+        }finally{
+            setIsUpdating(false)
+        }
     }
     return(
     <VStack flex={1}>
@@ -152,14 +186,14 @@ export function Profile(){
             <Heading color='gray.200' fontSize={'md'} mb={2}>Alterar senha</Heading>
             <Controller 
                     control={control}
-                    name='current_password' 
+                    name='old_password' 
                     render={({field: {onChange}}) => {
                         return <Input
                             placeholder='Senha antiga'
                             bg='gray.600'  
                             onChangeText={onChange}
                             secureTextEntry
-                            errorMessage={errors.current_password?.message}
+                            errorMessage={errors.old_password?.message}
                             onSubmitEditing={()=> Keyboard.dismiss()}
 
 
@@ -169,14 +203,14 @@ export function Profile(){
                />
                <Controller 
                     control={control}
-                    name='new_password' 
+                    name='password' 
                     render={({field: {onChange}}) => {
                         return <Input
                             placeholder='Nova senha'
                             bg='gray.600'  
                             onChangeText={onChange}
                             secureTextEntry
-                            errorMessage={errors.new_password?.message}
+                            errorMessage={errors.password?.message}
 
                             />
                            
@@ -184,21 +218,21 @@ export function Profile(){
                />
                <Controller 
                     control={control}
-                    name='confirm_new_password' 
+                    name='confirm_password' 
                     render={({field: {onChange}}) => {
                         return <Input
                             placeholder='Confirme senha'
                             bg='gray.600'  
                             onChangeText={onChange}
                             secureTextEntry
-                            errorMessage={errors.confirm_new_password?.message}
+                            errorMessage={errors.confirm_password?.message}
 
                             />
                            
                     }}         
                />
               
-            <Button title='Atualizar' mt={4} onPress={handleSubmit(handleProfileUpdate)}/>
+            <Button title='Atualizar' mt={4} onPress={handleSubmit(handleProfileUpdate)} isLoading={isUpdateing}/>
        </VStack>
         </ScrollView>
        
