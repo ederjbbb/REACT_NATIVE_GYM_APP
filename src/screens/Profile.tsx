@@ -14,6 +14,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import {UserPhoto} from '../components/Userphoto'
 import { api } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
+// import userPhotoDefaultImg from '../assets/userPhotoDefaultImg.png';
 import {yupResolver} from '@hookform/resolvers/yup'
 
 type FormDataProps = {
@@ -83,7 +84,6 @@ export function Profile(){
 
                     })                    
                 }
-                    // setUserPhoto(photoSelected.assets[0].uri)
                     const fileExtension = photoSelected.assets[0].uri.split('.').pop();
                     const photoFile = {
                         name: `${user.name}.${fileExtension}`.toLowerCase(),
@@ -95,11 +95,16 @@ export function Profile(){
                     const userPhotouploadForm   = new FormData();
                     userPhotouploadForm.append('avatar', photoFile)
 
-                    await api.patch('/users/avatar',userPhotouploadForm, {
+                    const avatarUpdatedResponse = await api.patch('/users/avatar',userPhotouploadForm, {
                         headers: {
                             'Cotent-Type' : 'multipart/form-data'
                         }
                     });
+
+                    const userUpdated = user;
+                    userUpdated.avatar = avatarUpdatedResponse.data.avatar;
+                    updateUserProfile(userUpdated)
+
                     toast.show({
                         title: 'Foto atualizada com sucesso',
                         placement: 'top',
@@ -163,10 +168,11 @@ export function Profile(){
                     : 
                    
                 <UserPhoto
-                source={{
-                    uri: userPhoto,
-                    
-                }}
+               source={
+                 user.avatar 
+                 ? {uri: `${api.defaults.baseURL}/avatar/${user.avatar}`}
+                 : userPhotoDefaultImg}
+                 
                 alt='foto do usuario'
                     size={PHOTO_SIZE}
                     mr={4}

@@ -4,6 +4,7 @@ import {MaterialIcons} from "@expo/vector-icons";
 import React from "react";
 import { TouchableOpacity } from "react-native";
 import { UserPhoto } from "./Userphoto";
+import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import userPhotoDefaultImg from '../../assets/userPhotoDefault.png';
 
@@ -13,7 +14,10 @@ export function HomeHeader() {
     return (
         <HStack bg="gray.600" pt={16} pb={5} px={8} alignItems="center" >
             <UserPhoto
-             source={user.avatar ? {uri: user.avatar}: userPhotoDefaultImg}
+             source={
+                 user.avatar 
+                 ? {uri: `${api.defaults.baseURL}/avatar/${user.avatar}`}
+                 : userPhotoDefaultImg}
             size={16}
             mr={4}
            
